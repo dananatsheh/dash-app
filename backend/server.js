@@ -217,8 +217,9 @@ app.patch("/api/departments/:id/manager", async (req, res) => {
 app.post("/api/departments", async (req, res) => {
   try {
     const { name, budget, location } = req.body;
-    const [result] = await pool.execute("INSERT INTO Department (Budget, Name) VALUES (?, ?)", [budget, name]);
-    const deptId = result.insertId;
+    const existing = await query("SELECT MAX(Department_ID) AS maxId FROM Department");
+    const deptId = (existing[0].maxId || 0) + 1;
+    await query("INSERT INTO Department (Department_ID, Budget, Name) VALUES (?, ?, ?)", [deptId, budget, name]);
     if (location) await query("INSERT INTO Department_Location (Department_ID, Location) VALUES (?, ?)", [deptId, location]);
     res.json({ success: true, id: deptId });
   } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
