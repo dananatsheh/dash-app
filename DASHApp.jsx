@@ -31,12 +31,46 @@ const globalStyles = `
   .animate-fade { animation: fadeIn 0.4s ease forwards; }
 
   .toast {
-    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
     background: #111; border: 1px solid #333;
-    padding: 10px 24px; font-size: 11px; letter-spacing: 0.1em;
+    padding: 10px 20px; font-size: 11px; letter-spacing: 0.1em;
     z-index: 9998; animation: fadeInUp 0.3s ease;
+    max-width: calc(100vw - 40px); text-align: center;
+    white-space: pre-wrap; word-break: break-word;
+  }
+
+  .dash-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  @media (max-width: 640px) {
+    .dash-modal { width: calc(100vw - 20px) !important; max-height: 88vh !important; overflow-y: auto !important; }
+    .dash-stats-row { flex-wrap: wrap !important; }
+    .dash-stats-row > * { flex: 1 1 130px !important; min-width: 130px !important; }
+    .dash-action-row { flex-wrap: wrap !important; gap: 8px !important; }
+    .dash-action-row > * { flex: 1 1 100px !important; font-size: 9px !important; padding: 7px 10px !important; }
+    .dash-hub-grid { grid-template-columns: 1fr 1fr !important; }
+    .dash-hub-card { min-height: 220px !important; padding: 20px 16px !important; }
+    .dash-hub-title { font-size: 32px !important; }
+    .dash-verse-pad { padding: 16px !important; }
+    .dash-nav-bar { padding: 10px 16px !important; }
+    .dash-form-row { flex-direction: column !important; }
+    .dash-form-row > * { width: 100% !important; }
+    .dash-hub-header { padding: 24px 20px 0 !important; flex-direction: column !important; gap: 12px !important; }
+    .dash-hub-header > div:last-child { text-align: left !important; }
+    .dash-hub-bottom { padding: 0 20px 20px !important; flex-direction: column !important; gap: 8px !important; }
+    .dash-return-btn { bottom: 16px !important; right: 16px !important; padding: 8px 14px !important; font-size: 9px !important; }
   }
 `;
+
+// ─── MOBILE HOOK ─────────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => window.innerWidth <= 640);
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth <= 640);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return mobile;
+}
 
 // ─── PARTICLE FIELD (original, unchanged) ────────────────────────────────────
 function ParticleField({ accent }) {
@@ -92,6 +126,7 @@ function useToast() {
 
 // ─── VERSE SHELL (wraps every module with particles + scanline + nav) ─────────
 function VerseShell({ accent, label, moduleLabel, onExit, children }) {
+  const mobile = useIsMobile();
   const bg = accent === "#ff3c5f" ? "#0d0005"
            : accent === "#00d4ff" ? "#00040d"
            : accent === "#a855f7" ? "#08000d"
@@ -120,29 +155,29 @@ function VerseShell({ accent, label, moduleLabel, onExit, children }) {
       }} />
 
       {/* Sticky navbar */}
-      <div style={{
+      <div className="dash-nav-bar" style={{
         position: "sticky", top: 0, zIndex: 100,
         background: bg + "ee", backdropFilter: "blur(10px)",
         borderBottom: `1px solid ${accent}1a`,
-        padding: "11px 32px",
+        padding: mobile ? "10px 16px" : "11px 32px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: mobile ? 10 : 20 }}>
           <button
             onClick={onExit}
-            style={{ background: "transparent", border: `1px solid ${accent}55`, color: accent, cursor: "pointer", fontFamily: "'Space Mono', monospace", fontSize: 10, letterSpacing: "0.15em", padding: "5px 14px" }}
+            style={{ background: "transparent", border: `1px solid ${accent}55`, color: accent, cursor: "pointer", fontFamily: "'Space Mono', monospace", fontSize: mobile ? 9 : 10, letterSpacing: "0.12em", padding: mobile ? "5px 10px" : "5px 14px" }}
           >
-            ← DASH HUB
+            ← HUB
           </button>
-          <div style={{ fontSize: 10, letterSpacing: "0.18em", color: accent, opacity: 0.65 }}>{label}</div>
+          <div style={{ fontSize: mobile ? 9 : 10, letterSpacing: "0.15em", color: accent, opacity: 0.65 }}>{label}</div>
         </div>
-        <div style={{ fontSize: 10, color: accent, opacity: 0.35, letterSpacing: "0.1em" }}>
+        {!mobile && <div style={{ fontSize: 10, color: accent, opacity: 0.35, letterSpacing: "0.1em" }}>
           {moduleLabel}
-        </div>
+        </div>}
       </div>
 
       {/* Content */}
-      <div style={{ position: "relative", zIndex: 2, padding: "32px" }}>
+      <div className="dash-verse-pad" style={{ position: "relative", zIndex: 2, padding: mobile ? "16px" : "32px" }}>
         {children}
       </div>
     </div>
@@ -245,15 +280,16 @@ function Modal({ open, onClose, color, title, children }) {
     <div style={css.modalOverlay} onClick={onClose}>
       <div
         onClick={(e) => e.stopPropagation()}
+        className="dash-modal"
         style={{
           background: "#0a0a0f", border: `1px solid ${color}44`,
-          padding: 32, width: "100%", maxWidth: 540,
+          padding: "24px 20px", width: "100%", maxWidth: 540,
           maxHeight: "88vh", overflowY: "auto", position: "relative",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div style={{ fontSize: 11, letterSpacing: "0.2em", color, fontFamily: "'Space Mono', monospace" }}>{title}</div>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: G.textMuted, cursor: "pointer", fontSize: 18, opacity: 0.6 }}>✕</button>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", color: G.textMuted, cursor: "pointer", fontSize: 18, opacity: 0.6, flexShrink: 0, marginLeft: 12 }}>✕</button>
         </div>
         {children}
       </div>
@@ -644,7 +680,7 @@ function DepartmentsModule({ onBack }) {
       </div>
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px,1fr))", gap: 8, marginBottom: 24 }}>
         <StatCard label="EMPLOYEES"   value={employees.length} color={color} />
         <StatCard label="DEPARTMENTS" value={departments.length} color={G.purple} />
         <StatCard label="CUSTOMERS"   value={customers.length} color={G.green} />
@@ -1049,7 +1085,7 @@ function GamesModule({ onBack }) {
       )}
 
       {tab === "sales" && (
-        <div style={{ overflowX: "auto" }}>
+        <div className="dash-table-wrap" style={{ overflowX: "auto" }}>
           <table style={css.table}>
             <thead>
               <tr>{["ID","Game","Customer","Date","Qty","Unit Price","Tax","Discount","Total","Method"].map(h => <th key={h} style={css.th(color)}>{h}</th>)}</tr>
@@ -1215,7 +1251,7 @@ function QAModule({ onBack }) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px,1fr))", gap: 8, marginBottom: 24 }}>
         <StatCard label="PASS RATE"  value={`${passRate}%`}  color={color} />
         <StatCard label="OPEN TASKS" value={tasks.filter(t => t.Progress < 100).length} color={G.cyan} />
         <StatCard label="HIGH PRIO"  value={highOpen}         color={G.red} />
@@ -1414,6 +1450,7 @@ const MODULES = [
 
 function SpacetimeHub({ onEnter }) {
   const [hovered, setHovered] = useState(null);
+  const mobile = useIsMobile();
 
   return (
     <div style={{ minHeight: "100vh", background: "#080808", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
@@ -1428,27 +1465,26 @@ function SpacetimeHub({ onEnter }) {
       }} />
 
       {/* Header */}
-      <div style={{ position: "relative", zIndex: 2, padding: "44px 48px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div className="dash-hub-header" style={{ position: "relative", zIndex: 2, padding: mobile ? "24px 20px 0" : "44px 48px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <div style={{ fontSize: 10, letterSpacing: "0.3em", color: "#E91E8C", marginBottom: 8, fontFamily: "'Space Mono',monospace" }}>
+          <div style={{ fontSize: mobile ? 8 : 10, letterSpacing: "0.3em", color: "#E91E8C", marginBottom: 8, fontFamily: "'Space Mono',monospace" }}>
             ◈ DASH MULTIVERSE — DATABASE INTERFACE v3.0
           </div>
-          <div style={{ fontSize: 52, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, color: "#fff", fontFamily: "'Space Mono',monospace" }}>
+          <div className="dash-hub-title" style={{ fontSize: mobile ? 36 : 52, fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1, color: "#fff", fontFamily: "'Space Mono',monospace" }}>
             SPACE<span style={{ color: "#E91E8C" }}>TIME</span>
           </div>
-          <div style={{ fontSize: 12, color: "#444", marginTop: 8, fontFamily: "'Space Mono',monospace", letterSpacing: "0.12em" }}>
+          <div style={{ fontSize: mobile ? 10 : 12, color: "#444", marginTop: 8, fontFamily: "'Space Mono',monospace", letterSpacing: "0.12em" }}>
             HUB / CHOOSE YOUR MODULE TO BEGIN
           </div>
         </div>
         <div style={{ textAlign: "right", fontSize: 10, color: "#333", fontFamily: "'Space Mono',monospace", lineHeight: 2 }}>
-          <div>ACTIVE MODULES: 4</div>
-          <div>DB TABLES: 12</div>
+          <div>MODULES: 4</div>
           <div>STATUS: <span style={{ color: "#00ff7f" }}>ONLINE</span></div>
         </div>
       </div>
 
       {/* Module grid */}
-      <div style={{ position: "relative", zIndex: 2, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 1, padding: "40px 48px", flex: 1, alignItems: "stretch" }}>
+      <div className="dash-hub-grid" style={{ position: "relative", zIndex: 2, display: "grid", gridTemplateColumns: mobile ? "1fr 1fr" : "repeat(4,1fr)", gap: 1, padding: mobile ? "20px 16px" : "40px 48px", flex: 1, alignItems: "stretch" }}>
         {MODULES.map(m => {
           const isHov = hovered === m.id;
           return (
@@ -1457,38 +1493,41 @@ function SpacetimeHub({ onEnter }) {
               onMouseEnter={() => setHovered(m.id)}
               onMouseLeave={() => setHovered(null)}
               onClick={() => onEnter(m.id)}
+              className="dash-hub-card"
               style={{
                 border: `1px solid ${isHov ? m.color : "rgba(255,255,255,0.06)"}`,
                 background: isHov ? m.glow : "rgba(0,0,0,0.3)",
-                padding: "36px 28px", cursor: "pointer", transition: "all 0.3s",
+                padding: mobile ? "20px 14px" : "36px 28px", cursor: "pointer", transition: "all 0.3s",
                 position: "relative", overflow: "hidden",
                 display: "flex", flexDirection: "column", justifyContent: "space-between",
-                minHeight: 360,
+                minHeight: mobile ? 200 : 360,
               }}
             >
               {/* Corner accents */}
-              <div style={{ position: "absolute", top: 0, left: 0, width: 20, height: 20, borderTop: `2px solid ${m.color}`, borderLeft: `2px solid ${m.color}`, opacity: isHov ? 1 : 0.2, transition: "opacity 0.3s" }} />
-              <div style={{ position: "absolute", bottom: 0, right: 0, width: 20, height: 20, borderBottom: `2px solid ${m.color}`, borderRight: `2px solid ${m.color}`, opacity: isHov ? 1 : 0.2, transition: "opacity 0.3s" }} />
+              <div style={{ position: "absolute", top: 0, left: 0, width: 16, height: 16, borderTop: `2px solid ${m.color}`, borderLeft: `2px solid ${m.color}`, opacity: isHov ? 1 : 0.2, transition: "opacity 0.3s" }} />
+              <div style={{ position: "absolute", bottom: 0, right: 0, width: 16, height: 16, borderBottom: `2px solid ${m.color}`, borderRight: `2px solid ${m.color}`, opacity: isHov ? 1 : 0.2, transition: "opacity 0.3s" }} />
 
               <div>
-                <div style={{ fontSize: 26, marginBottom: 14, filter: isHov ? "none" : "grayscale(0.6)" }}>{m.emoji}</div>
-                <div style={{ fontSize: 9, letterSpacing: "0.22em", color: m.color, marginBottom: 6, fontFamily: "'Space Mono',monospace", opacity: isHov ? 1 : 0.4 }}>{m.role}</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", fontFamily: "'Space Mono',monospace", marginBottom: 4 }}>{m.label}</div>
-                <div style={{ fontSize: 10, color: isHov ? "#888" : "#2a2a2a", fontFamily: "'Space Mono',monospace", lineHeight: 1.65, transition: "color 0.3s", marginBottom: 16 }}>{m.desc}</div>
-                <div style={{ fontSize: 9, padding: "4px 10px", border: `1px solid ${isHov ? m.color+"44" : "#1a1a1a"}`, color: isHov ? m.color : "#2a2a2a", display: "inline-block", letterSpacing: "0.08em", transition: "all 0.3s", fontFamily: "'Space Mono',monospace" }}>
+                <div style={{ fontSize: mobile ? 20 : 26, marginBottom: 10, filter: isHov ? "none" : "grayscale(0.6)" }}>{m.emoji}</div>
+                <div style={{ fontSize: 8, letterSpacing: "0.18em", color: m.color, marginBottom: 4, fontFamily: "'Space Mono',monospace", opacity: isHov ? 1 : 0.4 }}>{m.role}</div>
+                <div style={{ fontSize: mobile ? 14 : 22, fontWeight: 700, color: "#fff", fontFamily: "'Space Mono',monospace", marginBottom: 4 }}>{m.label}</div>
+                {!mobile && <div style={{ fontSize: 10, color: isHov ? "#888" : "#2a2a2a", fontFamily: "'Space Mono',monospace", lineHeight: 1.65, transition: "color 0.3s", marginBottom: 16 }}>{m.desc}</div>}
+                {!mobile && <div style={{ fontSize: 9, padding: "4px 10px", border: `1px solid ${isHov ? m.color+"44" : "#1a1a1a"}`, color: isHov ? m.color : "#2a2a2a", display: "inline-block", letterSpacing: "0.08em", transition: "all 0.3s", fontFamily: "'Space Mono',monospace" }}>
                   DB MODULE ACTIVE
-                </div>
+                </div>}
               </div>
 
-              <div style={{ marginTop: 20 }}>
-                <div style={{ fontSize: 9, color: isHov ? m.color : "#1e1e1e", letterSpacing: "0.12em", marginBottom: 8, transition: "color 0.3s", fontFamily: "'Space Mono',monospace" }}>WHAT YOU CAN DO:</div>
-                {m.actions.map((a, i) => (
-                  <div key={i} style={{ fontSize: 10, color: isHov ? "#888" : "#1e1e1e", fontFamily: "'Space Mono',monospace", padding: "3px 0", transition: "color 0.3s", display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ color: isHov ? m.color : "#1e1e1e", transition: "color 0.3s" }}>›</span> {a}
-                  </div>
-                ))}
-                <div style={{ marginTop: 16, fontSize: 10, color: isHov ? m.color : "#1e1e1e", letterSpacing: "0.12em", transition: "color 0.3s", fontFamily: "'Space Mono',monospace" }}>
-                  {isHov ? "CLICK TO ENTER →" : "HOVER TO PREVIEW"}
+              <div style={{ marginTop: mobile ? 10 : 20 }}>
+                {!mobile && <>
+                  <div style={{ fontSize: 9, color: isHov ? m.color : "#1e1e1e", letterSpacing: "0.12em", marginBottom: 8, transition: "color 0.3s", fontFamily: "'Space Mono',monospace" }}>WHAT YOU CAN DO:</div>
+                  {m.actions.map((a, i) => (
+                    <div key={i} style={{ fontSize: 10, color: isHov ? "#888" : "#1e1e1e", fontFamily: "'Space Mono',monospace", padding: "3px 0", transition: "color 0.3s", display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ color: isHov ? m.color : "#1e1e1e", transition: "color 0.3s" }}>›</span> {a}
+                    </div>
+                  ))}
+                </>}
+                <div style={{ marginTop: mobile ? 0 : 16, fontSize: mobile ? 9 : 10, color: isHov ? m.color : "#555", letterSpacing: "0.1em", transition: "color 0.3s", fontFamily: "'Space Mono',monospace" }}>
+                  TAP TO ENTER →
                 </div>
               </div>
             </div>
@@ -1497,12 +1536,12 @@ function SpacetimeHub({ onEnter }) {
       </div>
 
       {/* Bottom bar */}
-      <div style={{ position: "relative", zIndex: 2, padding: "0 48px 28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="dash-hub-bottom" style={{ position: "relative", zIndex: 2, padding: mobile ? "0 20px 20px" : "0 48px 28px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ fontSize: 9, color: "#1e1e1e", fontFamily: "'Space Mono',monospace", letterSpacing: "0.1em" }}>
-          DASH GAME COMPANY — DATABASE MANAGEMENT SYSTEM — PHASE III
+          DASH GAME COMPANY — DB MANAGEMENT — PHASE III
         </div>
         <div style={{ display: "flex", gap: 3 }}>
-          {MODULES.map(m => <div key={m.id} style={{ width: 28, height: 3, background: m.color, opacity: 0.4 }} />)}
+          {MODULES.map(m => <div key={m.id} style={{ width: mobile ? 18 : 28, height: 3, background: m.color, opacity: 0.4 }} />)}
         </div>
       </div>
     </div>
@@ -1536,6 +1575,7 @@ export default function App() {
       {/* Floating return button — from original */}
       <button
         onClick={() => setCurrent(null)}
+        className="dash-return-btn"
         style={{
           position: "fixed", bottom: 28, right: 28, zIndex: 9999,
           background: "#0a0a0a", border: `1px solid ${accent}`,
@@ -1544,7 +1584,7 @@ export default function App() {
           padding: "10px 20px",
         }}
       >
-        ⊗ SPACETIME HUB
+        ⊗ HUB
       </button>
     </div>
   );

@@ -31,6 +31,31 @@ const query = async (sql, params = []) => {
   return rows;
 };
 
+// Better error messages from MySQL error codes
+function friendlyError(e) {
+  if (!e) return "Unknown error";
+  const msg = e.message || "";
+  const code = e.code || "";
+  if (code === "ER_DUP_ENTRY" || msg.includes("Duplicate entry")) {
+    const match = msg.match(/Duplicate entry '(.+?)' for key/);
+    return match ? `Duplicate value: '${match[1]}' already exists` : "Duplicate entry — this record already exists";
+  }
+  if (code === "ER_NO_REFERENCED_ROW_2" || msg.includes("a foreign key constraint fails")) {
+    return "Referenced record does not exist (foreign key violation)";
+  }
+  if (code === "ER_ROW_IS_REFERENCED_2" || msg.includes("Cannot delete or update a parent row")) {
+    return "Cannot delete — other records depend on this one";
+  }
+  if (code === "ER_BAD_NULL_ERROR" || msg.includes("cannot be null")) {
+    const col = msg.match(/Column '(.+?)' cannot be null/);
+    return col ? `Field '${col[1]}' is required` : "A required field is missing";
+  }
+  if (code === "ER_DATA_TOO_LONG") return "One of the values is too long for its field";
+  if (code === "ER_TRUNCATED_WRONG_VALUE_FOR_FIELD") return "Invalid value for a field (e.g. wrong data type)";
+  if (msg) return msg;
+  return `Database error (${code || "unknown"})`;
+}
+
 // ─── TASKS ────────────────────────────────────────────────────────────────────
 app.get("/api/tasks", async (req, res) => {
   try {
@@ -42,7 +67,7 @@ app.get("/api/tasks", async (req, res) => {
       GROUP BY t.Task_ID
     `);
     res.json(tasks);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 // POST /api/tasks — now accepts assigneeSSNs: ["1001","1002"]
@@ -73,14 +98,14 @@ app.post("/api/tasks", async (req, res) => {
       await query("INSERT INTO Task_Assignment (Task_ID, SSN) VALUES (?, ?)", [taskId, ssn]);
     }
     res.json({ success: true, id: taskId });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 app.delete("/api/tasks/:id", async (req, res) => {
   try {
     await query("DELETE FROM Task WHERE Task_ID = ?", [req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 app.patch("/api/tasks/:id", async (req, res) => {
@@ -88,7 +113,7 @@ app.patch("/api/tasks/:id", async (req, res) => {
     const { progress, status } = req.body;
     await query("UPDATE Task SET Progress = ?, Status = ? WHERE Task_ID = ?", [progress, status, req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 // ─── EMPLOYEES ────────────────────────────────────────────────────────────────
@@ -108,7 +133,7 @@ app.get("/api/employees", async (req, res) => {
       LEFT JOIN Department d ON e.Department_ID = d.Department_ID
     `);
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 app.post("/api/employees", async (req, res) => {
@@ -150,14 +175,14 @@ app.post("/api/employees", async (req, res) => {
        testingType || null, certification || null, managementLevel || null, officeNumber || null]
     );
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 app.delete("/api/employees/:ssn", async (req, res) => {
   try {
     await query("DELETE FROM Person WHERE SSN = ?", [req.params.ssn]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 // ─── DEPARTMENTS ──────────────────────────────────────────────────────────────
@@ -174,7 +199,7 @@ app.get("/api/departments", async (req, res) => {
       GROUP BY d.Department_ID
     `);
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 app.patch("/api/departments/:id/manager", async (req, res) => {
@@ -185,7 +210,7 @@ app.patch("/api/departments/:id/manager", async (req, res) => {
       [managerSSN, req.params.id]
     );
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 app.post("/api/departments", async (req, res) => {
@@ -195,7 +220,7 @@ app.post("/api/departments", async (req, res) => {
     const deptId = result.insertId;
     if (location) await query("INSERT INTO Department_Location (Department_ID, Location) VALUES (?, ?)", [deptId, location]);
     res.json({ success: true, id: deptId });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 // ─── GAMES ────────────────────────────────────────────────────────────────────
@@ -209,7 +234,7 @@ app.get("/api/games", async (req, res) => {
       game.platforms = platforms.map(r => r.Platform);
     }
     res.json(games);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 app.post("/api/games", async (req, res) => {
@@ -223,14 +248,14 @@ app.post("/api/games", async (req, res) => {
     for (const g of (genres || [])) await query("INSERT INTO Game_Genre (Game_ID, Genre) VALUES (?,?)", [id, g]);
     for (const p of (platforms || [])) await query("INSERT INTO Game_Platform (Game_ID, Platform) VALUES (?,?)", [id, p]);
     res.json({ success: true, id });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 app.delete("/api/games/:id", async (req, res) => {
   try {
     await query("DELETE FROM Game WHERE Game_ID = ?", [req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 // ─── SALES ────────────────────────────────────────────────────────────────────
@@ -245,7 +270,7 @@ app.get("/api/sales", async (req, res) => {
       JOIN Person p ON c.SSN = p.SSN
     `);
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 app.post("/api/sales", async (req, res) => {
@@ -257,7 +282,7 @@ app.post("/api/sales", async (req, res) => {
       [id, tax || 0, date, method, unitPrice, discount || 0, qty, customerSSN, gameID]
     );
     res.json({ success: true, id });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 // ─── CUSTOMERS ────────────────────────────────────────────────────────────────
@@ -268,7 +293,7 @@ app.get("/api/customers", async (req, res) => {
       FROM Customer c JOIN Person p ON c.SSN = p.SSN
     `);
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 // ─── CUSTOMERS (write) ────────────────────────────────────────────────────────
@@ -293,14 +318,14 @@ app.post("/api/customers", async (req, res) => {
       [ssn, userName || ssn, password || "", loyaltyPoints || 0]
     );
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 app.delete("/api/customers/:ssn", async (req, res) => {
   try {
     await query("DELETE FROM Person WHERE SSN = ?", [req.params.ssn]);
     res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 // ─── STAGES ───────────────────────────────────────────────────────────────────
@@ -316,7 +341,7 @@ app.get("/api/stages", async (req, res) => {
       GROUP BY s.Stage_Order
     `);
     res.json(rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) { res.status(500).json({ error: friendlyError(e) }); }
 });
 
 // ─── START ────────────────────────────────────────────────────────────────────
