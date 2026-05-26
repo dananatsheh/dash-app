@@ -18,10 +18,11 @@ app.use(cors());
 app.use(express.json());
 
 const pool = mysql.createPool({
-  host:     process.env.DB_HOST     || "localhost",
-  user:     process.env.DB_USER     || "root",
-  password: process.env.DB_PASSWORD || "",
-  database: process.env.DB_NAME     || "ddb",
+  host:     process.env.MYSQLHOST      || "localhost",
+  user:     process.env.MYSQLUSER      || "root",
+  password: process.env.MYSQLPASSWORD  || "",
+  database: process.env.MYSQL_DATABASE || "railway",
+  port:     process.env.MYSQLPORT      || 3306,
   waitForConnections: true,
   connectionLimit: 10,
 });
