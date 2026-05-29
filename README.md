@@ -53,33 +53,6 @@ node server.js
 
 Once the backend is running, replace mock data with live DB hooks.
 
-Open `DASHApp.jsx` and follow the instructions at the bottom of `api.js`.
-
-### Quick example for OmarVerse (Tasks):
-
-```jsx
-// At top of OmarVerse component:
-import { useTasks, api } from "./api.js";
-
-// Inside component:
-const { data: tasks, refetch } = useTasks();
-
-const handleAdd = async () => {
-  await api.createTask({ name: form.name, priority: form.priority, ... });
-  refetch();
-  setShowAdd(false);
-};
-
-const handleDelete = async (id) => {
-  await api.deleteTask(id);
-  refetch();
-};
-```
-
-Repeat the same pattern for Sara (departments), Lina (games + sales), Yousef (tasks read-only).
-
----
-
 ## 4. Verse → Module Map
 
 | Verse | Character | Color | DB Module |
